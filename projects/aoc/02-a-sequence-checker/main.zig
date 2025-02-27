@@ -1,13 +1,21 @@
 const std = @import("std");
 
+const SequenceState = enum {
+    firstNumber,
+    firstComparison,
+    isAscending,
+    isDescending,
+};
+
 pub fn main() !void {
     const input_file_name: []const u8 = "projects/aoc/02-a-sequence-checker/input.txt";
+    const buffer_len: i32 = 100;
 
     const cwd = std.fs.cwd();
     const input_file = try cwd.openFile(input_file_name, .{});
+    defer input_file.close();
 
     const reader = input_file.reader();
-    const buffer_len = 100;
     var output: [buffer_len]u8 = undefined;
     var output_fbs = std.io.fixedBufferStream(&output);
     const writer = output_fbs.writer();
@@ -16,43 +24,54 @@ pub fn main() !void {
     lineloop: while (true) {
         reader.streamUntilDelimiter(writer, '\n', buffer_len) catch break;
         const line = output_fbs.getWritten();
+        std.debug.print("\n{s: <30}", .{line});
         output_fbs.reset();
 
-        var is_first_number = true;
-        var is_first_comparison = true;
-        var is_ascending: bool = undefined;
-
         var prev_num: i32 = undefined;
-        var current_num: i32 = 0;
-        for (line) |c| {
+        var curr_num: i32 = 0;
+        var sequence_state = SequenceState.firstNumber;
+
+        for (line, 0..) |c, i| {
+            // Read next integer
             if (c != ' ') {
-                current_num *= 10;
-                current_num += c - '0';
-            } else {
-                if (is_first_number) {
-                    prev_num = current_num;
-                    current_num = 0;
-                    is_first_number = false;
-                } else if (is_first_comparison) {
-                    if (current_num == prev_num) continue :lineloop;
-                    is_ascending = current_num > prev_num;
-                    is_first_comparison = false;
-                    if (@abs(current_num - prev_num) > 3) {
-                        continue :lineloop;
-                    }
-                } else if (is_ascending != (current_num > prev_num)) {
-                    continue :lineloop;
-                } else {
-                    if (current_num == prev_num) continue :lineloop;
-                    prev_num = current_num;
-                    current_num = 0;
-                }
+                curr_num *= 10;
+                curr_num += c - '0';
+                // std.debug.print("i: {}, line.len {}\n", .{ i, line.len });
+                if (i < line.len - 1) continue;
             }
+            switch (sequence_state) {
+                .firstNumber => {
+                    prev_num = curr_num;
+                    curr_num = 0;
+                    sequence_state = SequenceState.firstComparison;
+                    continue;
+                },
+                .firstComparison => {
+                    if (curr_num > prev_num) {
+                        sequence_state = SequenceState.isAscending;
+                        std.debug.print("{s: <20}", .{"is ascending"});
+                    } else {
+                        sequence_state = SequenceState.isDescending;
+                        std.debug.print("{s: <20}", .{"is descending"});
+                    }
+                },
+                .isAscending => {
+                    if (curr_num < prev_num) continue :lineloop;
+                    std.debug.print("{s: <20}", .{"still ascending"});
+                },
+                .isDescending => {
+                    if (curr_num > prev_num) continue :lineloop;
+                    std.debug.print("{s: <20}", .{"still descending"});
+                },
+            }
+
+            if (prev_num == curr_num) continue :lineloop;
+            if (@abs(prev_num - curr_num) > 3) continue :lineloop;
+            prev_num = curr_num;
+            curr_num = 0;
         }
         safe_rows_count += 1;
-        std.debug.print("{s}\n", .{line});
-        std.debug.print("SAFE ROW\n", .{});
-        std.debug.print("\n", .{});
+        std.debug.print("SAFE ROW", .{});
     }
-    std.debug.print("Total safe row count {}\n", .{safe_rows_count});
+    std.debug.print("\n\nTotal safe row count {}\n", .{safe_rows_count});
 }

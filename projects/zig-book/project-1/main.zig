@@ -81,16 +81,42 @@ const Base64 = struct {
         return out;
     }
 
-    // pub fn decode(self: Base64, allocator: std.mem.Allocator, input: []const u8) ![]u8 {
-    //     if (input.len == 0) {
-    //         return "";
-    //     }
-    //
-    //     const n_out = try _calc_encode_length(input);
-    //     var out = try allocator.alloc(u8, n_out);
-    //
-    //     return out;
-    // }
+    pub fn decode(self: Base64, allocator: std.mem.Allocator, input: []const u8) ![]u8 {
+        if (input.len == 0) {
+            return "";
+        }
+
+        var n_equal_symbols: usize = 0;
+        if (input[input.len - 1] == '=') {
+            n_equal_symbols += 1;
+        }
+        if (input[input.len - 2] == '=') {
+            n_equal_symbols += 1;
+        }
+
+        const n_out = try _calc_decode_length(input);
+        var out = try allocator.alloc(u8, n_out - n_equal_symbols);
+
+        // edgecase: will output be the right length?
+        var i: usize = 0;
+        var out_ix: usize = 0;
+        while (i < input.len) : (i += 4) {
+            const bits1 = self._char_ix(input[i]) orelse unreachable;
+            const bits2 = self._char_ix(input[i + 1]) orelse unreachable;
+            const bits3 = self._char_ix(input[i + 2]) orelse 0;
+            const bits4 = self._char_ix(input[i + 3]) orelse 0;
+
+            out[out_ix] = (bits1 << 2) | (bits2 >> 4);
+            out[out_ix + 1] = ((bits2 & 0b1111) << 4) | (bits3 >> 4);
+            if (bits3 != 0) {
+                out[out_ix + 2] = ((bits3 & 0b11) << 6) | bits4;
+            }
+
+            out_ix += 3;
+        }
+
+        return out;
+    }
 };
 
 fn _calc_encode_length(input: []const u8) !usize {
@@ -144,24 +170,29 @@ test "Encode" {
     testing.allocator.free(actual);
 }
 
-// test "Decode" {
-//     const base64 = Base64.init();
-//
-//     var actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3IQ==");
-//     var expected = "asdfasdfasdfka sje;rlakw!";
-//     try testing.expectEqualSlices(u8, expected, actual);
-//     testing.allocator.free(actual);
-//
-//     actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3KjE=");
-//     expected = "asdfasdfasdfka sje;rlakw*1";
-//     try testing.expectEqualSlices(u8, expected, actual);
-//     testing.allocator.free(actual);
-//
-//     actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3KjEy");
-//     expected = "asdfasdfasdfka sje;rlakw*12";
-//     try testing.expectEqualSlices(u8, expected, actual);
-//     testing.allocator.free(actual);
-// }
+test "Decode" {
+    const base64 = Base64.init();
+
+    // var actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3IQ==");
+    // var expected = "asdfasdfasdfka sje;rlakw!";
+    // try testing.expectEqualSlices(u8, expected, actual);
+    // testing.allocator.free(actual);
+    //
+    // actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3KjE=");
+    // expected = "asdfasdfasdfka sje;rlakw*1";
+    // try testing.expectEqualSlices(u8, expected, actual);
+    // testing.allocator.free(actual);
+
+    const actual = try base64.decode(testing.allocator, "aa==");
+    const expected = "i";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+
+    // const actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3KjEy");
+    // const expected = "asdfasdfasdfka sje;rlakw*12";
+    // try testing.expectEqualSlices(u8, expected, actual);
+    // testing.allocator.free(actual);
+}
 
 test "Get ix" {
     const base64 = Base64.init();

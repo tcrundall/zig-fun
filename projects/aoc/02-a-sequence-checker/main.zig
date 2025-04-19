@@ -7,6 +7,15 @@ const SequenceState = enum {
     isDescending,
 };
 
+const MyStruct = struct { fbs: std.io.FixedBufferStream([]u8) };
+
+// pub fn fixedBufferStream(buffer: anytype) FixedBufferStream(Slice(@TypeOf(buffer))) {
+fn createBufferStream(comptime buffer: *[100]u8) MyStruct {
+    std.debug.print("Type of buffer {}", .{@TypeOf(&buffer)});
+    const output_fbs = std.io.fixedBufferStream(&buffer);
+    return MyStruct{ .fbs = output_fbs };
+}
+
 pub fn main() !void {
     const input_file_name: []const u8 = "projects/aoc/02-a-sequence-checker/input.txt";
     const buffer_len: i32 = 100;
@@ -16,16 +25,16 @@ pub fn main() !void {
     defer input_file.close();
 
     const reader = input_file.reader();
-    var output: [buffer_len]u8 = undefined;
-    var output_fbs = std.io.fixedBufferStream(&output);
-    const writer = output_fbs.writer();
+    comptime var output_buf: [buffer_len]u8 = undefined;
+    comptime var output = createBufferStream(&output_buf);
+    const writer = output.fbs.writer();
 
     var safe_rows_count: u32 = 0;
     lineloop: while (true) {
         reader.streamUntilDelimiter(writer, '\n', buffer_len) catch break;
-        const line = output_fbs.getWritten();
+        const line = output.fbs.getWritten();
         std.debug.print("\n{s: <30}", .{line});
-        output_fbs.reset();
+        output.fbs.reset();
 
         var prev_num: i32 = undefined;
         var curr_num: i32 = 0;

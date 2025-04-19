@@ -5,6 +5,7 @@
 - [Cmake tutorial](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)
 - [Using ZIG as drop in (youtube vid)](https://www.youtube.com/watch?v=kuZIzL0K4o4)
 - [List of C projects built with zig](https://github.com/allyourcodebase/zlib)
+- [Zig build guide](https://ziglang.org/learn/build-system)
 
 ## Zig
 

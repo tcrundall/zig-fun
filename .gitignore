@@ -1,0 +1,5 @@
+a.out
+.zig-cache
+zig-out
+errors.out
+build

@@ -18,6 +18,7 @@ pub fn build(b: *std.Build) void {
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
     const lib_mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -27,7 +28,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
     exe_mod.addImport("math_functions", lib_mod);
 
     const lib = b.addLibrary(.{
@@ -35,7 +35,14 @@ pub fn build(b: *std.Build) void {
         .name = "math_functions",
         .root_module = lib_mod,
     });
-    lib.addCSourceFiles(.{ .files = &.{ "MathFunctions/MathFunctions.cxx", "MathFunctions/mysqrt.cxx" } });
+
+    const use_my_math = b.option(bool, "USE_MYMATH", "Use self implementation of sqrt") orelse false;
+    if (use_my_math) {
+        lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" }, .flags = &.{"-DUSE_MYMATH=1"} });
+    } else {
+        lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" }, .flags = &.{"-DUSE_MYMATH=0"} });
+    }
+    lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/mysqrt.cxx" } });
     lib.linkLibCpp();
 
     b.installArtifact(lib);

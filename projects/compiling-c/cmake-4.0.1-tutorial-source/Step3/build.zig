@@ -36,12 +36,12 @@ pub fn build(b: *std.Build) void {
         .root_module = lib_mod,
     });
 
-    const use_my_math = b.option(bool, "USE_MYMATH", "Use self implementation of sqrt") orelse false;
+    const use_my_math = b.option(bool, "USE_MYMATH", "Use self implementation of sqrt") orelse true;
+    var use_my_math_flag: []const u8 = "";
     if (use_my_math) {
-        lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" }, .flags = &.{"-DUSE_MYMATH=1"} });
-    } else {
-        lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" }, .flags = &.{"-DUSE_MYMATH=0"} });
+        use_my_math_flag = "-DUSE_MYMATH=1";
     }
+    lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" }, .flags = &.{use_my_math_flag} });
     lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/mysqrt.cxx" } });
     lib.linkLibCpp();
 

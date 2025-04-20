@@ -4,18 +4,6 @@ pub fn build(b: *std.Build) void {
     const major_version = 1;
     const minor_version = 0;
 
-    // const tool_run1 = b.addSystemCommand(&.{"sed"});
-    // tool_run1.addArgs(&.{b.fmt("s/@Tutorial_VERSION_MAJOR@/{d}/", .{major_version})});
-    // tool_run1.addFileArg(b.path("TutorialConfig.h.in"));
-    // const output1 = tool_run1.captureStdOut();
-    //
-    // const tool_run2 = b.addSystemCommand(&.{"sed"});
-    // tool_run2.addArgs(&.{b.fmt("s/@Tutorial_VERSION_MINOR@/{d}/", .{minor_version})});
-    // tool_run2.addFileArg(output1);
-    // const output2 = tool_run2.captureStdOut();
-    //
-    // b.getInstallStep().dependOn(&b.addInstallFileWithDir(output2, .prefix, "TutorialConfig.h").step);
-
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const exe_mod = b.createModule(.{
@@ -27,15 +15,22 @@ pub fn build(b: *std.Build) void {
         .root_module = exe_mod,
     });
 
-    const cmake_cfg_header_cmd = b.addConfigHeader(.{ .style = .{ .cmake = b.path("TutorialConfig.h.in") } }, .{ .Tutorial_VERSION_MAJOR = major_version, .Tutorial_VERSION_MINOR = minor_version });
-    // const cmake_cfg_header_out = b.addInstallFile(b.path(cmake_cfg_header_cmd.output_file.path.?), "TutorialConfig.h");
+    // substitute cmake values
+    const cmake_cfg_header_cmd = b.addConfigHeader(
+        .{ .style = .{ .cmake = b.path("TutorialConfig.h.in") } },
+        .{
+            .Tutorial_VERSION_MAJOR = major_version,
+            .Tutorial_VERSION_MINOR = minor_version,
+        },
+    );
+
+    // store result in header file
     const cmake_cfg_header_out = b.addInstallFile(cmake_cfg_header_cmd.getOutput(), "TutorialConfig.h");
-    // const generated_c_file = generate_c_file_cmd.addOutputFileArg("TutorialConfig.h");
-    // exe.addCSourceFile(.{ .file = b.path(cmake_cfg_header_out.dest_rel_path), .flags = &.{} });
 
     exe.addCSourceFile(.{ .file = .{ .cwd_relative = "tutorial.cxx" }, .flags = &.{} });
-    // exe.addCSourceFile(.{ .file = cmake_cfg_header_out.source, .flags = &.{} });
-    exe.addIncludePath(.{ .cwd_relative = "zig-out" });
+    exe.addIncludePath(.{ .cwd_relative = "zig-out" }); // TODO: work out how to point this to "prefix"
+    // exe.addIncludePath(b.path(b.install_prefix)); // this _almost_ works. It works if prefix is custom set
+
     exe.linkLibCpp(); // only need cpp libraries, it seems
     exe.step.dependOn(&cmake_cfg_header_out.step);
 

@@ -7,13 +7,17 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const windows = b.option(bool, "windows", "Target Microsoft Windows") orelse false;
+
     const lib_mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
     });
 
     const exe_mod = b.createModule(.{
-        .target = target,
+        .target = b.resolveTargetQuery(.{
+            .os_tag = if (windows) .windows else null,
+        }),
         .optimize = optimize,
     });
     exe_mod.addImport("math_functions", lib_mod);

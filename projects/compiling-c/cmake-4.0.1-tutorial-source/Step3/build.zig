@@ -1,16 +1,16 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
-    const major_version = 1;
-    const minor_version = 0;
+const MAJOR_VERSION = 1;
+const MINOR_VERSION = 0;
 
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const use_my_math = b.option(
         bool,
-        "USE_MYMATH",
+        "useMyMath",
         "Use self implementation of sqrt",
-    ) orelse true;
+    ) orelse false;
 
     const lib_name = "math_functions";
 
@@ -24,8 +24,8 @@ pub fn build(b: *std.Build) void {
     });
     exe_mod.addImport(lib_name, lib_mod);
 
-    buildLibrary(b, lib_mod, lib_name, use_my_math);
-    const exe = buildExecutable(b, exe_mod, major_version, minor_version);
+    try buildLibrary(b, lib_mod, lib_name, use_my_math);
+    const exe = buildExecutable(b, exe_mod);
 
     b.installArtifact(exe);
 
@@ -44,20 +44,22 @@ fn buildLibrary(
     lib_mod: *std.Build.Module,
     lib_name: []const u8,
     use_my_math: bool,
-) void {
+) !void {
     const lib = b.addLibrary(.{
         .linkage = .static,
         .name = lib_name,
         .root_module = lib_mod,
     });
 
-    var use_my_math_flag: []const u8 = "";
+    var flags = std.ArrayList([]const u8).init(b.allocator);
+    defer flags.deinit();
     if (use_my_math) {
-        use_my_math_flag = "-DUSE_MYMATH=1";
+        try flags.append("-DUSE_MYMATH=1");
     }
+
     lib.addCSourceFile(.{
         .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" },
-        .flags = &.{use_my_math_flag},
+        .flags = flags.items,
     });
     lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/mysqrt.cxx" } });
     lib.linkLibCpp();
@@ -68,8 +70,6 @@ fn buildLibrary(
 fn buildExecutable(
     b: *std.Build,
     exe_mod: *std.Build.Module,
-    major_version: u16,
-    minor_version: u16,
 ) *std.Build.Step.Compile {
     const exe = b.addExecutable(.{
         .name = "tutorial_z",
@@ -79,8 +79,8 @@ fn buildExecutable(
     const cmake_cfg_header_cmd = b.addConfigHeader(
         .{ .style = .{ .cmake = b.path("TutorialConfig.h.in") } },
         .{
-            .Tutorial_VERSION_MAJOR = major_version,
-            .Tutorial_VERSION_MINOR = minor_version,
+            .Tutorial_VERSION_MAJOR = MAJOR_VERSION,
+            .Tutorial_VERSION_MINOR = MAJOR_VERSION,
         },
     );
 

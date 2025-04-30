@@ -11,7 +11,15 @@ pub fn build(b: *std.Build) void {
     const math_lib_name = "math_functions";
 
     const lib_mod = buildLibrary(b, optimize, target, math_lib_name);
-    const exe = buildExecutable(b, optimize, windows, math_lib_name, lib_mod, major_version, minor_version);
+    const exe = buildExecutable(
+        b,
+        optimize,
+        windows,
+        math_lib_name,
+        lib_mod,
+        major_version,
+        minor_version,
+    );
 
     b.installArtifact(exe);
 
@@ -25,7 +33,12 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 }
 
-fn buildLibrary(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget, lib_name: []const u8) *std.Build.Module {
+fn buildLibrary(
+    b: *std.Build,
+    optimize: std.builtin.OptimizeMode,
+    target: std.Build.ResolvedTarget,
+    lib_name: []const u8,
+) *std.Build.Module {
     const lib_mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -42,7 +55,10 @@ fn buildLibrary(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.B
     if (use_my_math) {
         use_my_math_flag = "-DUSE_MYMATH=1";
     }
-    lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" }, .flags = &.{use_my_math_flag} });
+    lib.addCSourceFile(.{
+        .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" },
+        .flags = &.{use_my_math_flag},
+    });
     lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/mysqrt.cxx" } });
     lib.linkLibCpp();
 

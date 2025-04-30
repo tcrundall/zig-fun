@@ -2,14 +2,14 @@
 
 #include <cmath>
 
-#if USE_MYMATH
+#ifdef USE_MYMATH
 #include "mysqrt.h"
 #endif
 
 namespace mathfunctions {
 double sqrt(double x) {
   // Otherwise, use std::sqrt.
-#if USE_MYMATH
+#ifdef USE_MYMATH
   return detail::mysqrt(x);
 #else
   return std::sqrt(x);

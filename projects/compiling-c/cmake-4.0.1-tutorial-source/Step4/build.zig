@@ -14,31 +14,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const exe_mod = b.createModule(.{
-        .target = b.resolveTargetQuery(.{
-            .os_tag = if (windows) .windows else null,
-        }),
-        .optimize = optimize,
-    });
-    exe_mod.addImport("math_functions", lib_mod);
-
     const lib = b.addLibrary(.{
         .linkage = .static,
         .name = "math_functions",
         .root_module = lib_mod,
     });
-
-    // substitute cmake values
-    const cmake_cfg_header_cmd = b.addConfigHeader(
-        .{ .style = .{ .cmake = b.path("TutorialConfig.h.in") } },
-        .{
-            .Tutorial_VERSION_MAJOR = major_version,
-            .Tutorial_VERSION_MINOR = minor_version,
-        },
-    );
-
-    // store result in header file
-    const cmake_cfg_header_out = b.addInstallFile(cmake_cfg_header_cmd.getOutput(), "TutorialConfig.h");
 
     const use_my_math = b.option(bool, "USE_MYMATH", "Use self implementation of sqrt") orelse true;
     var use_my_math_flag: []const u8 = "";
@@ -51,15 +31,30 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(lib);
 
+    const exe_mod = b.createModule(.{
+        .target = b.resolveTargetQuery(.{
+            .os_tag = if (windows) .windows else null,
+        }),
+        .optimize = optimize,
+    });
+    exe_mod.addImport("math_functions", lib_mod);
+
     const exe = b.addExecutable(.{
         .name = "tutorial_z",
         .root_module = exe_mod,
     });
-    exe.step.dependOn(&cmake_cfg_header_out.step);
 
+    // substitute cmake values
+    const cmake_cfg_header_cmd = b.addConfigHeader(
+        .{ .style = .{ .cmake = b.path("TutorialConfig.h.in") } },
+        .{
+            .Tutorial_VERSION_MAJOR = major_version,
+            .Tutorial_VERSION_MINOR = minor_version,
+        },
+    );
+
+    exe.addConfigHeader(cmake_cfg_header_cmd);
     exe.addCSourceFile(.{ .file = .{ .cwd_relative = "tutorial.cxx" }, .flags = &.{} });
-    exe.addIncludePath(.{ .cwd_relative = "zig-out" }); // TODO: work out how to point this to "prefix"
-    // exe.addIncludePath(b.path(b.install_prefix)); // this _almost_ works. It works if prefix is custom set
     exe.addIncludePath(.{ .cwd_relative = "MathFunctions" });
     exe.linkLibCpp();
 

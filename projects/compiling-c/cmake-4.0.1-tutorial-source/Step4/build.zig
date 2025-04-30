@@ -13,17 +13,14 @@ pub fn build(b: *std.Build) void {
     const lib_mod = buildLibrary(b, optimize, target, math_lib_name);
     const exe = buildExecutable(b, optimize, windows, math_lib_name, lib_mod, major_version, minor_version);
 
-    const install_artifact = b.addInstallArtifact(exe, .{
-        .dest_dir = .{ .override = .prefix },
-    });
-    b.getInstallStep().dependOn(&install_artifact.step);
+    b.installArtifact(exe);
+
     const run_cmd = b.addRunArtifact(exe);
-
-    run_cmd.step.dependOn(b.getInstallStep());
-
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
+    run_cmd.step.dependOn(b.getInstallStep());
+
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 }

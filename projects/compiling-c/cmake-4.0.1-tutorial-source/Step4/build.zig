@@ -11,33 +11,7 @@ pub fn build(b: *std.Build) void {
     const math_lib_name = "math_functions";
 
     const lib_mod = buildLibrary(b, optimize, target, math_lib_name);
-
-    const exe_mod = b.createModule(.{
-        .target = b.resolveTargetQuery(.{
-            .os_tag = if (windows) .windows else null,
-        }),
-        .optimize = optimize,
-    });
-    exe_mod.addImport(math_lib_name, lib_mod);
-
-    const exe = b.addExecutable(.{
-        .name = "tutorial_z",
-        .root_module = exe_mod,
-    });
-
-    // substitute cmake values
-    const cmake_cfg_header_cmd = b.addConfigHeader(
-        .{ .style = .{ .cmake = b.path("TutorialConfig.h.in") } },
-        .{
-            .Tutorial_VERSION_MAJOR = major_version,
-            .Tutorial_VERSION_MINOR = minor_version,
-        },
-    );
-
-    exe.addConfigHeader(cmake_cfg_header_cmd);
-    exe.addCSourceFile(.{ .file = .{ .cwd_relative = "tutorial.cxx" }, .flags = &.{} });
-    exe.addIncludePath(.{ .cwd_relative = "MathFunctions" });
-    exe.linkLibCpp();
+    const exe = buildExecutable(b, optimize, windows, math_lib_name, lib_mod, major_version, minor_version);
 
     const install_artifact = b.addInstallArtifact(exe, .{
         .dest_dir = .{ .override = .prefix },
@@ -77,4 +51,42 @@ fn buildLibrary(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.B
 
     b.installArtifact(lib);
     return lib_mod;
+}
+
+fn buildExecutable(
+    b: *std.Build,
+    optimize: std.builtin.OptimizeMode,
+    windows: bool,
+    lib_name: []const u8,
+    lib_mod: *std.Build.Module,
+    major_version: u16,
+    minor_version: u16,
+) *std.Build.Step.Compile {
+    const exe_mod = b.createModule(.{
+        .target = b.resolveTargetQuery(.{
+            .os_tag = if (windows) .windows else null,
+        }),
+        .optimize = optimize,
+    });
+    exe_mod.addImport(lib_name, lib_mod);
+
+    const exe = b.addExecutable(.{
+        .name = "tutorial_z",
+        .root_module = exe_mod,
+    });
+
+    // substitute cmake values
+    const cmake_cfg_header_cmd = b.addConfigHeader(
+        .{ .style = .{ .cmake = b.path("TutorialConfig.h.in") } },
+        .{
+            .Tutorial_VERSION_MAJOR = major_version,
+            .Tutorial_VERSION_MINOR = minor_version,
+        },
+    );
+
+    exe.addConfigHeader(cmake_cfg_header_cmd);
+    exe.addCSourceFile(.{ .file = .{ .cwd_relative = "tutorial.cxx" }, .flags = &.{} });
+    exe.addIncludePath(.{ .cwd_relative = "MathFunctions" });
+    exe.linkLibCpp();
+    return exe;
 }

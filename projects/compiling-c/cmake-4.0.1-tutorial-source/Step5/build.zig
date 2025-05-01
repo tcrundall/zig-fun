@@ -134,7 +134,13 @@ fn setupRunStep(b: *std.Build, exe: *std.Build.Step.Compile) void {
 }
 
 fn setupTestStep(b: *std.Build, tests: *std.Build.Step.Compile) void {
+    const test_on_install = b.option(bool, "testOnInstall", "Run tests when installing") orelse false;
     const test_step = b.step("test", "Run unit tests");
     const run_tests = b.addRunArtifact(tests);
     test_step.dependOn(&run_tests.step);
+
+    // Make tests run as part of install step
+    if (test_on_install) {
+        b.getInstallStep().dependOn(test_step);
+    }
 }

@@ -16,5 +16,10 @@ TEST(TestSqrt, FloatResults) {
 }
 
 TEST(TestSqrt, InvalidInputs) {
+#ifdef USE_MYMATH
+  EXPECT_EQ(mathfunctions::sqrt(-25), 0);
+  EXPECT_EQ(mathfunctions::sqrt(-25.5), 0);
+#else
   EXPECT_TRUE(std::isnan(mathfunctions::sqrt(-25)));
+#endif
 }

@@ -11,11 +11,16 @@ pub fn build(b: *std.Build) !void {
         .optimize = b.standardOptimizeOption(.{}),
         .target = b.standardTargetOptions(.{}),
     };
+    const use_my_math = b.option(
+        bool,
+        "useMyMath",
+        "Use self implementation of sqrt",
+    ) orelse false;
 
     // Compile and install modules
-    const lib = try compileAndInstallLibrary(b, standard_opts);
+    const lib = try compileAndInstallLibrary(b, standard_opts, use_my_math);
     const exe = compileAndInstallExecutable(b, standard_opts, lib);
-    const tests = compileAndInstallTests(b, standard_opts, lib);
+    const tests = try compileAndInstallTests(b, standard_opts, lib, use_my_math);
 
     // Configure steps
     setupRunStep(b, exe);
@@ -25,13 +30,9 @@ pub fn build(b: *std.Build) !void {
 fn compileAndInstallLibrary(
     b: *std.Build,
     standard_opts: std.Build.Module.CreateOptions,
+    use_my_math: bool,
 ) !*std.Build.Step.Compile {
     // Set up library specific options
-    const use_my_math = b.option(
-        bool,
-        "useMyMath",
-        "Use self implementation of sqrt",
-    ) orelse false;
     const dynamic_lib = b.option(
         bool,
         "dynamic",
@@ -105,15 +106,24 @@ fn compileAndInstallTests(
     b: *std.Build,
     standard_opts: std.Build.Module.CreateOptions,
     lib: *std.Build.Step.Compile,
-) *std.Build.Step.Compile {
+    use_my_math: bool,
+) !*std.Build.Step.Compile {
     // Initialize tests
     const test_mod = b.createModule(standard_opts);
     test_mod.addImport(MATH_LIB_NAME, lib.root_module);
     const tests = b.addExecutable(.{ .name = "tests", .root_module = test_mod });
 
+    // Handle conditional compilation
+    var flags = std.ArrayList([]const u8).init(b.allocator);
+    defer flags.deinit();
+    if (use_my_math) {
+        try flags.append("-DUSE_MYMATH=1");
+    }
+
     // Add source files, link dependencies
     tests.addCSourceFile(.{
         .file = b.path("tests/main.cpp"),
+        .flags = flags.items,
     });
     const googletest_dep = b.dependency("googletest", .{ // Does not accept nullable fields, so cannot directly pass standard_opts
         .target = standard_opts.target.?,

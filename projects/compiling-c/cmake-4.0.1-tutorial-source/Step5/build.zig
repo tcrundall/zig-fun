@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) !void {
     // Compile and install modules
     const lib = try compileAndInstallLibrary(b, standard_opts);
     const exe = compileAndInstallExecutable(b, standard_opts, lib);
-    const tests = compileAndInstallTests(b, standard_opts);
+    const tests = compileAndInstallTests(b, standard_opts, lib);
 
     // Configure steps
     setupRunStep(b, exe);
@@ -101,26 +101,32 @@ fn compileAndInstallExecutable(
     return exe;
 }
 
-fn compileAndInstallTests(b: *std.Build, standard_opts: std.Build.Module.CreateOptions) *std.Build.Step.Compile {
+fn compileAndInstallTests(
+    b: *std.Build,
+    standard_opts: std.Build.Module.CreateOptions,
+    lib: *std.Build.Step.Compile,
+) *std.Build.Step.Compile {
     // Initialize tests
     const test_mod = b.createModule(standard_opts);
-    const unit_test = b.addExecutable(.{ .name = "tests", .root_module = test_mod });
+    test_mod.addImport(MATH_LIB_NAME, lib.root_module);
+    const tests = b.addExecutable(.{ .name = "tests", .root_module = test_mod });
 
     // Add source files, link dependencies
-    unit_test.addCSourceFile(.{
+    tests.addCSourceFile(.{
         .file = b.path("tests/main.cpp"),
     });
     const googletest_dep = b.dependency("googletest", .{ // Does not accept nullable fields, so cannot directly pass standard_opts
         .target = standard_opts.target.?,
         .optimize = standard_opts.optimize.?,
     });
-    unit_test.linkLibrary(googletest_dep.artifact("gtest"));
-    unit_test.linkLibrary(googletest_dep.artifact("gtest_main"));
+    tests.addIncludePath(.{ .cwd_relative = "MathFunctions" });
+    tests.linkLibrary(googletest_dep.artifact("gtest"));
+    tests.linkLibrary(googletest_dep.artifact("gtest_main"));
 
     // Identify as install target
     // b.installArtifact(unit_test);
 
-    return unit_test;
+    return tests;
 }
 
 fn setupRunStep(b: *std.Build, exe: *std.Build.Step.Compile) void {

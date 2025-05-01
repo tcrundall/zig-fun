@@ -1,6 +1,20 @@
-#include "gtest/gtest.h"
+#include <cmath>
+#include <gtest/gtest.h>
 
-TEST(SimpleTest, BasicAssertion) {
-  EXPECT_EQ(1 + 1, 2);
-  EXPECT_EQ(1 + 2, 3);
+#include "MathFunctions.h"
+
+TEST(TestSqrt, WholeNumbers) {
+  EXPECT_EQ(mathfunctions::sqrt(9), 3);
+  EXPECT_EQ(mathfunctions::sqrt(25), 5);
+  EXPECT_EQ(mathfunctions::sqrt(100), 10);
+  EXPECT_EQ(mathfunctions::sqrt(1), 1);
+  EXPECT_EQ(mathfunctions::sqrt(0), 0);
+}
+
+TEST(TestSqrt, FloatResults) {
+  EXPECT_FLOAT_EQ(mathfunctions::sqrt(90), 9.48683);
+}
+
+TEST(TestSqrt, InvalidInputs) {
+  EXPECT_TRUE(std::isnan(mathfunctions::sqrt(-25)));
 }

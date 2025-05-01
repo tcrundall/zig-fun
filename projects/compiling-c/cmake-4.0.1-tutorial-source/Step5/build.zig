@@ -10,6 +10,11 @@ pub fn build(b: *std.Build) !void {
         "useMyMath",
         "Use self implementation of sqrt",
     ) orelse false;
+    const dynamic_lib = b.option(
+        bool,
+        "dynamic",
+        "Link library dynamically",
+    ) orelse false;
 
     const math_lib_name = "math_functions";
 
@@ -24,10 +29,8 @@ pub fn build(b: *std.Build) !void {
     });
     exe_mod.addImport(math_lib_name, lib_mod);
 
-    try buildLibrary(b, lib_mod, math_lib_name, use_my_math);
+    try buildLibrary(b, lib_mod, math_lib_name, use_my_math, dynamic_lib);
     const exe = buildExecutable(b, exe_mod);
-
-    b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
     if (b.args) |args| {
@@ -44,9 +47,10 @@ fn buildLibrary(
     lib_mod: *std.Build.Module,
     lib_name: []const u8,
     use_my_math: bool,
+    dynamic_lib: bool,
 ) !void {
     const lib = b.addLibrary(.{
-        .linkage = .static,
+        .linkage = if (dynamic_lib) .dynamic else .static,
         .name = lib_name,
         .root_module = lib_mod,
     });
@@ -64,7 +68,6 @@ fn buildLibrary(
         .flags = flags.items,
     });
     lib.linkLibCpp();
-
     b.installArtifact(lib);
 }
 
@@ -86,5 +89,7 @@ fn buildExecutable(b: *std.Build, exe_mod: *std.Build.Module) *std.Build.Step.Co
     exe.addCSourceFile(.{ .file = .{ .cwd_relative = "tutorial.cxx" }, .flags = &.{} });
     exe.addIncludePath(.{ .cwd_relative = "MathFunctions" });
     exe.linkLibCpp();
+    b.installArtifact(exe);
+
     return exe;
 }

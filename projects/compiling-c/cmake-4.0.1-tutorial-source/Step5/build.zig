@@ -5,7 +5,6 @@ const MINOR_VERSION = 0;
 pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
-    const windows = b.option(bool, "windows", "Target Microsoft Windows") orelse false;
     const use_my_math = b.option(
         bool,
         "useMyMath",
@@ -20,9 +19,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     const exe_mod = b.createModule(.{
-        .target = b.resolveTargetQuery(.{
-            .os_tag = if (windows) .windows else null,
-        }),
+        .target = target,
         .optimize = optimize,
     });
     exe_mod.addImport(math_lib_name, lib_mod);

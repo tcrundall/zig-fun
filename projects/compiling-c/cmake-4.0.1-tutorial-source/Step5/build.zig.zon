@@ -1,7 +1,8 @@
 .{
-    .name = "step5",
+    .name = .step5,
     .version = "0.0.0",
-    //.minimum_zig_version = "0.11.0",
+    .fingerprint = 0xab9deed7ee8c0f47,
+    .minimum_zig_version = "0.14.0",
 
     .dependencies = .{
         .googletest = .{

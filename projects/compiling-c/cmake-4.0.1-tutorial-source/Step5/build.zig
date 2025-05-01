@@ -46,16 +46,21 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
-    const unit_test = b.addTest(.{ .root_module = test_mod });
+    const unit_test = b.addExecutable(.{ .name = "tests", .root_module = test_mod });
+    unit_test.linkLibC();
     unit_test.linkLibCpp();
     unit_test.addCSourceFile(.{
         .file = b.path("tests/main.cpp"),
+        .flags = &.{"-pthread"},
     });
     const googletest_dep = b.dependency("googletest", .{
         .target = target,
         .optimize = optimize,
     });
     unit_test.linkLibrary(googletest_dep.artifact("gtest"));
+    unit_test.linkLibrary(googletest_dep.artifact("gtest_main"));
+
+    b.installArtifact(unit_test);
 
     const run_unit_test = b.addRunArtifact(unit_test);
     test_step.dependOn(&run_unit_test.step);

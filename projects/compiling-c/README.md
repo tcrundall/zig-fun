@@ -7,6 +7,7 @@
 - [List of C projects built with zig](https://github.com/allyourcodebase/zlib)
 - [Zig build guide](https://ziglang.org/learn/build-system)
 - [Build system tricks](https://ziggit.dev/t/build-system-tricks/3531)
+- [ziggit post: zig and googletest](https://ziggit.dev/t/use-zig-to-test-c-cpp-files-with-gtest/6608/6)
 
 ## Zig
 

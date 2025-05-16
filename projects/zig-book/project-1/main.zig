@@ -46,6 +46,15 @@ const Base64 = struct {
         unreachable;
     }
 
+    // Fill each "slot" with raw bits which will eventually be converted into base64 chars
+    // 256 base input --> 64 base output
+    //            XYZ --> ABCD
+    // A is 6 most significant bits of X
+    // B is 2 least significant bits of X and 4 most significant bits of Y
+    // C is 4 least significant bits of Y and 2 most significant bits of Z
+    // D is 6 least significant bits of Z
+    // If both Y and Z or just Y are not provided, then C and D or D are set to 255, which
+    // will be interpreted as an '=', the "filler" symbol of base64
     fn _transform_8bit_to_6bit(self: Base64, input: []const u8, output: []u8) !void {
         output[0] = input[0] >> 2;
         output[1] = (input[0] & 0b11) << 4;
@@ -65,6 +74,7 @@ const Base64 = struct {
         }
     }
 
+    // Encode three 8 bit characters into four 6 bit characters
     pub fn encode(self: Base64, allocator: std.mem.Allocator, input: []const u8) ![]u8 {
         if (input.len == 0) {
             return "";
@@ -86,6 +96,7 @@ const Base64 = struct {
         return out;
     }
 
+    // Deocde four 6 bit characters into three 8 bit characters
     pub fn decode(self: Base64, allocator: std.mem.Allocator, input: []const u8) ![]u8 {
         if (input.len == 0) {
             return "";
@@ -124,6 +135,8 @@ const Base64 = struct {
     }
 };
 
+// each group of 3 8-bit (base256) chars is mapped to 4 6-bit (base64) chars
+// so we calculate length accordingly
 fn _calc_encode_length(input: []const u8) !usize {
     if (input.len == 0) {
         const n_output: usize = 4;
@@ -133,6 +146,8 @@ fn _calc_encode_length(input: []const u8) !usize {
     return n_output * 4;
 }
 
+// each group of 4 6-bit (base64) chars is mapped to 3 8-bit (base256) chars
+// so we calculate length accordingly
 fn _calc_decode_length(input: []const u8) !usize {
     if (input.len == 0) {
         const n_output: usize = 3;

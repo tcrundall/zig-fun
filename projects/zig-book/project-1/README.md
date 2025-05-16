@@ -4,6 +4,6 @@
 
 ## Actions
 
-- [ ] Get encoder working
-- [ ] Write decoder tests
-- [ ] Get encoder working
+- [x] Get encoder working
+- [x] Write decoder tests
+- [x] Get encoder working

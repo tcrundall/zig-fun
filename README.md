@@ -18,10 +18,18 @@ A place for all of my zig experimentation and learning
 - [ ] [compiling-c](./projects/compiling-c/README.md)
 - [ ] [aoc](./projects/aoc/README.md)
 - [ ] [zig-book - projects](https://pedropark99.github.io/zig-book/)
-  - [ ] [project 1 - base64 de/encoder](./projects/zig-book/project-1/main.zig)
-  - [ ] project 2
+  - [x] [project 1 - base64 de/encoder](./projects/zig-book/project-1/main.zig)
+  - [ ] project 2 - building HTTP server from scratch
   - [ ] project 3
 - [ ] [leetcode](./projects/leetcode/README.md)
 
+## Learning
+
+- [ ] [zig-book](https://pedropark99.github.io/zig-book/)
+  - [ ] Ch. 5 - Debugging Zig
+  - [ ] Ch. 6 - Pointers and optionals
+
 ## Notes
 
+When considering debuggers, `Mason` provides `lldb` but not `gdb` so I s'pose I'll go with that.
+See this [blog post for instructions](https://eliasdorneles.com/til/posts/customizing-neovim-debugging-highlight-zig-debug-w-codelldb/)

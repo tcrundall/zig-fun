@@ -1,6 +1,10 @@
 // A base64 encoder/decoder
 const std = @import("std");
 
+const DecodeError = error{
+    InvalidIndex,
+};
+
 const Base64 = struct {
     _table: *const [64]u8,
 
@@ -13,18 +17,19 @@ const Base64 = struct {
         };
     }
 
-    pub fn _char_at(self: Base64, index: usize) u8 {
-        if (index > self._table.len) return '=';
+    pub fn _char_at(self: Base64, index: usize) !u8 {
+        if (index == 0xFF) return '=';
+        if (index >= self._table.len) return DecodeError.InvalidIndex;
 
         return self._table[index];
     }
 
     pub fn _char_ix(_: Base64, char: u8) ?u8 {
-        if ((char >= 'a') and (char <= 'z')) {
-            return char - 'a';
-        }
         if ((char >= 'A') and (char <= 'Z')) {
-            return char - 'A' + 26;
+            return char - 'A';
+        }
+        if ((char >= 'a') and (char <= 'z')) {
+            return char - 'a' + 26;
         }
         if ((char >= '0') and (char <= '9')) {
             return char - '0' + 52;
@@ -41,7 +46,7 @@ const Base64 = struct {
         unreachable;
     }
 
-    fn _transform_8bit_to_6bit(self: Base64, input: []const u8, output: []u8) void {
+    fn _transform_8bit_to_6bit(self: Base64, input: []const u8, output: []u8) !void {
         output[0] = input[0] >> 2;
         output[1] = (input[0] & 0b11) << 4;
         output[2] = 0xFF;
@@ -56,7 +61,7 @@ const Base64 = struct {
         }
 
         for (output, 0..) |b, i| {
-            output[i] = self._char_at(b);
+            output[i] = try self._char_at(b);
         }
     }
 
@@ -74,7 +79,7 @@ const Base64 = struct {
             const in_end_ix = @min(input.len, in_ix + 3);
             const out_ix_end = out_ix + 4;
 
-            _transform_8bit_to_6bit(self, input[in_ix..in_end_ix], out[out_ix..out_ix_end]);
+            try _transform_8bit_to_6bit(self, input[in_ix..in_end_ix], out[out_ix..out_ix_end]);
             in_ix += 3;
             out_ix += 4;
         }
@@ -197,12 +202,12 @@ test "Encode" {
 test "Get ix" {
     const base64 = Base64.init();
 
-    for ("abcdefghijklmnopqrstuvwxyz", 0..) |char, expected_ix| {
+    for ("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 0..) |char, expected_ix| {
         const actual_ix = base64._char_ix(char) orelse unreachable;
         try testing.expectEqual(expected_ix, actual_ix);
     }
 
-    for ("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 26..) |char, expected_ix| {
+    for ("abcdefghijklmnopqrstuvwxyz", 26..) |char, expected_ix| {
         const actual_ix = base64._char_ix(char) orelse unreachable;
         try testing.expectEqual(expected_ix, actual_ix);
     }
@@ -215,4 +220,33 @@ test "Get ix" {
     try testing.expectEqual(62, base64._char_ix('+'));
     try testing.expectEqual(63, base64._char_ix('/'));
     try testing.expectEqual(null, base64._char_ix('='));
+}
+
+test "Char at" {
+    const base64 = Base64.init();
+
+    for (0.., "ABCDEFGHIJKLMNOPQRSTUVWXYZ") |index, expected_char| {
+        const actual_char = try base64._char_at(index);
+        try testing.expectEqual(expected_char, actual_char);
+    }
+
+    for (26.., "abcdefghijklmnopqrstuvwxyz") |index, expected_char| {
+        const actual_char = try base64._char_at(index);
+        try testing.expectEqual(expected_char, actual_char);
+    }
+
+    for (52.., "0123456789") |index, expected_char| {
+        const actual_char = try base64._char_at(index);
+        try testing.expectEqual(expected_char, actual_char);
+    }
+
+    try testing.expectEqual('+', base64._char_at(62));
+    try testing.expectEqual('/', base64._char_at(63));
+
+    try testing.expectEqual('=', base64._char_at(0xFF));
+    try testing.expectEqual('=', base64._char_at(255));
+
+    for (64..255) |invalid_index| {
+        try testing.expectEqual(DecodeError.InvalidIndex, base64._char_at(invalid_index));
+    }
 }

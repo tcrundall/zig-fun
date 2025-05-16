@@ -54,7 +54,7 @@ const Base64 = struct {
     // C is 4 least significant bits of Y and 2 most significant bits of Z
     // D is 6 least significant bits of Z
     // If both Y and Z or just Y are not provided, then C and D or D are set to 255, which
-    // will be interpreted as an '=', the "filler" symbol of base64
+    // will be interpreted as an '=' which is the "filler" symbol of base64
     fn _transform_8bit_to_6bit(self: Base64, input: []const u8, output: []u8) !void {
         output[0] = input[0] >> 2;
         output[1] = (input[0] & 0b11) << 4;
@@ -96,38 +96,60 @@ const Base64 = struct {
         return out;
     }
 
-    // Deocde four 6 bit characters into three 8 bit characters
+    // Decode four 6 bit characters into three 8 bit characters
+    // Fill each "slot" with raw bits representing base256 ASCII characters
+    //  64 base (6 bits) input --> 256 base (8 bits) output
+    //                    ABCD --> XYZ
+    // X is all 6 bits of A and 2 most significant bits of B
+    // Y is 4 least significant bits of B and 4 most significant bits of C
+    // Z is 2 least significant bits of C and all 6 bits of D
+    //
+    // If C and D or D are '=', then Y and Z or Z are omitted
+    fn _transform_6bit_to_8bit(self: Base64, input: []const u8, output: []u8) !void {
+        const input_0 = self._char_ix(input[0]) orelse unreachable;
+        const input_1 = self._char_ix(input[1]) orelse unreachable;
+        const input_2 = self._char_ix(input[2]) orelse 0;
+        const input_3 = self._char_ix(input[3]) orelse 0;
+        output[0] = input_0 << 2 | input_1 >> 4;
+
+        if (output.len == 1) return;
+        output[1] = (input_1 & 0b1111) << 4 | input_2 >> 2;
+
+        if (output.len == 2) return;
+
+        output[2] = (input_2 & 0b11) << 6 | input_3;
+        return;
+    }
+
+    // Decode four 6 bit characters into three 8 bit characters
+    // Fill each "slot" with raw bits representing base256 ASCII characters
+    //  64 base input --> 256 base output
+    //           ABCD --> XYZ
+    // X is all 6 bits of A and 2 most significant bits of B
+    // Y is 4 least significant bits of B and 4 most significant bits of C
+    // Z is 2 least significant bits of C and all 6 bits of D
+    //
+    // If C and D or D are '=', then Y and Z or Z are omitted
     pub fn decode(self: Base64, allocator: std.mem.Allocator, input: []const u8) ![]u8 {
         if (input.len == 0) {
             return "";
         }
 
         var n_equal_symbols: usize = 0;
-        if (input[input.len - 1] == '=') {
-            n_equal_symbols += 1;
-        }
         if (input[input.len - 2] == '=') {
-            n_equal_symbols += 1;
+            n_equal_symbols = 2;
+        } else if (input[input.len - 1] == '=') {
+            n_equal_symbols = 1;
         }
 
-        const n_out = try _calc_decode_length(input);
-        var out = try allocator.alloc(u8, n_out - n_equal_symbols);
+        const n_out = try _calc_decode_length(input, n_equal_symbols);
+        var out = try allocator.alloc(u8, n_out);
 
-        // edgecase: will output be the right length?
         var i: usize = 0;
         var out_ix: usize = 0;
-        while (i < input.len) : (i += 4) {
-            const bits1 = self._char_ix(input[i]) orelse unreachable;
-            const bits2 = self._char_ix(input[i + 1]) orelse unreachable;
-            const bits3 = self._char_ix(input[i + 2]) orelse 0;
-            const bits4 = self._char_ix(input[i + 3]) orelse 0;
-
-            out[out_ix] = (bits1 << 2) | (bits2 >> 4);
-            out[out_ix + 1] = ((bits2 & 0b1111) << 4) | (bits3 >> 4);
-            if (bits3 != 0) {
-                out[out_ix + 2] = ((bits3 & 0b11) << 6) | bits4;
-            }
-
+        while (i < input.len - n_equal_symbols) : (i += 4) {
+            const out_end = @min(out_ix + 3, out.len);
+            try self._transform_6bit_to_8bit(input[i .. i + 4], out[out_ix..out_end]);
             out_ix += 3;
         }
 
@@ -148,13 +170,13 @@ fn _calc_encode_length(input: []const u8) !usize {
 
 // each group of 4 6-bit (base64) chars is mapped to 3 8-bit (base256) chars
 // so we calculate length accordingly
-fn _calc_decode_length(input: []const u8) !usize {
+fn _calc_decode_length(input: []const u8, n_equals_signs: usize) !usize {
     if (input.len == 0) {
         const n_output: usize = 3;
         return n_output;
     }
     const n_output = try std.math.divCeil(usize, input.len, 4);
-    return n_output * 3;
+    return n_output * 3 - n_equals_signs;
 }
 
 pub fn main() !void {
@@ -163,9 +185,16 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     const base64 = Base64.init();
-    const out_buf = try base64.encode(allocator, "asdfasdfasdfka sje;rlakw!");
+    std.debug.print("Encoding...\n", .{});
+    var out_buf = try base64.encode(allocator, "asdfasdfasdfka sje;rlakw!");
     std.debug.print("Output:  {s}\n", .{out_buf});
     std.debug.print("Compare: YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3IQ==\n", .{});
+    allocator.free(out_buf);
+
+    std.debug.print("\nDecoding...\n", .{});
+    out_buf = try base64.decode(allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3IQ==");
+    std.debug.print("Output:  {s}\n", .{out_buf});
+    std.debug.print("Compare: asdfasdfasdfka sje;rlakw!\n", .{});
     allocator.free(out_buf);
 }
 
@@ -190,29 +219,51 @@ test "Encode" {
     testing.allocator.free(actual);
 }
 
-// test "Decode" {
-//     const base64 = Base64.init();
-//
-//     // var actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3IQ==");
-//     // var expected = "asdfasdfasdfka sje;rlakw!";
-//     // try testing.expectEqualSlices(u8, expected, actual);
-//     // testing.allocator.free(actual);
-//     //
-//     // actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3KjE=");
-//     // expected = "asdfasdfasdfka sje;rlakw*1";
-//     // try testing.expectEqualSlices(u8, expected, actual);
-//     // testing.allocator.free(actual);
-//
-//     const actual = try base64.decode(testing.allocator, "aa==");
-//     const expected = "i";
-//     try testing.expectEqualSlices(u8, expected, actual);
-//     testing.allocator.free(actual);
-//
-//     // const actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3KjEy");
-//     // const expected = "asdfasdfasdfka sje;rlakw*12";
-//     // try testing.expectEqualSlices(u8, expected, actual);
-//     // testing.allocator.free(actual);
-// }
+test "Decode" {
+    const base64 = Base64.init();
+    var actual: []const u8 = undefined;
+    var expected: []const u8 = undefined;
+
+    actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3IQ==");
+    expected = "asdfasdfasdfka sje;rlakw!";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+
+    actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3KjE=");
+    expected = "asdfasdfasdfka sje;rlakw*1";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+
+    actual = try base64.decode(testing.allocator, "YQ==");
+    expected = "a";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+
+    actual = try base64.decode(testing.allocator, "YWE=");
+    expected = "aa";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+
+    actual = try base64.decode(testing.allocator, "YWFh");
+    expected = "aaa";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+
+    actual = try base64.decode(testing.allocator, "YWFhYQ==");
+    expected = "aaaa";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+
+    actual = try base64.decode(testing.allocator, "YWFhYWE=");
+    expected = "aaaaa";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+
+    actual = try base64.decode(testing.allocator, "YXNkZmFzZGZhc2Rma2Egc2plO3JsYWt3KjEy");
+    expected = "asdfasdfasdfka sje;rlakw*12";
+    try testing.expectEqualSlices(u8, expected, actual);
+    testing.allocator.free(actual);
+}
 
 test "Get ix" {
     const base64 = Base64.init();
@@ -264,4 +315,63 @@ test "Char at" {
     for (64..255) |invalid_index| {
         try testing.expectEqual(DecodeError.InvalidIndex, base64._char_at(invalid_index));
     }
+}
+
+test "calculating decode length" {
+    var input: []const u8 = "YQ==";
+    comptime var expected_decode_length = 1;
+    try testing.expectEqual(expected_decode_length, _calc_decode_length(input, 2));
+
+    input = "YWE=";
+    expected_decode_length = 2;
+    try testing.expectEqual(expected_decode_length, _calc_decode_length(input, 1));
+
+    input = "YWFh";
+    expected_decode_length = 3;
+    try testing.expectEqual(expected_decode_length, _calc_decode_length(input, 0));
+
+    input = "YWFhYQ==";
+    expected_decode_length = 4;
+    try testing.expectEqual(expected_decode_length, _calc_decode_length(input, 2));
+
+    input = "YWFhYWE=";
+    expected_decode_length = 5;
+    try testing.expectEqual(expected_decode_length, _calc_decode_length(input, 1));
+
+    input = "YWFhYWFh";
+    expected_decode_length = 6;
+    try testing.expectEqual(expected_decode_length, _calc_decode_length(input, 0));
+}
+
+test "transform 6 bit to 8 bit" {
+    const base64 = Base64.init();
+
+    var input: []const u8 = undefined;
+    var expected_output: []const u8 = undefined;
+    var output = try testing.allocator.alloc(u8, 3);
+    defer testing.allocator.free(output);
+
+    input = "YWFh";
+    expected_output = "aaa";
+    try base64._transform_6bit_to_8bit(input, output[0..3]);
+    try testing.expectEqualStrings(expected_output, output);
+
+    var output_2 = try testing.allocator.alloc(u8, 2);
+    defer testing.allocator.free(output_2);
+    input = "YWE=";
+    expected_output = "aa";
+    try base64._transform_6bit_to_8bit(input, output_2[0..2]);
+    try testing.expectEqualStrings(expected_output, output_2);
+
+    var output_3 = try testing.allocator.alloc(u8, 1);
+    defer testing.allocator.free(output_3);
+    input = "YQ==";
+    expected_output = "a";
+    try base64._transform_6bit_to_8bit(input, output_3[0..1]);
+    try testing.expectEqualStrings(expected_output, output_3);
+}
+
+test "transform 8 bit to 6 bit" {
+    // TODO:
+    _ = Base64.init();
 }

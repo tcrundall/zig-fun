@@ -3,3 +3,8 @@ a.out
 zig-out
 errors.out
 build
+
+*.o
+*.out
+*.err
+main

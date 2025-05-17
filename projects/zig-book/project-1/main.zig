@@ -1,5 +1,6 @@
 // A base64 encoder/decoder
 const std = @import("std");
+const stdout = std.io.getStdOut().writer();
 
 const DecodeError = error{
     InvalidIndex,
@@ -183,6 +184,9 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
+
+    try stdout.print("another message\n", .{});
+    try stdout.print("Some formatted {b:06}\n", .{123});
 
     const base64 = Base64.init();
     std.debug.print("Encoding...\n", .{});

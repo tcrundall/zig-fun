@@ -31,5 +31,28 @@ A place for all of my zig experimentation and learning
 
 ## Notes
 
+### Debugging
+
+Links:
+- [zig book debug chatper](https://pedropark99.github.io/zig-book/Chapters/02-debugging.html#fn3)
+- [lldb docs](https://lldb.llvm.org/)
+- [lldb cheatsheet](https://gist.github.com/ryanchang/a2f738f0c3cc6fbd71fa)
+
 When considering debuggers, `Mason` provides `lldb` but not `gdb` so I s'pose I'll go with that.
 See this [blog post for instructions](https://eliasdorneles.com/til/posts/customizing-neovim-debugging-highlight-zig-debug-w-codelldb/)
+
+I have `lldb-dap` arleady installed since I installed llvm
+
+Following [setup from docs](https://github.com/mfussenegger/nvim-dap/wiki/Debug-Adapter-installation#ccrust-via-lldb-vscode)
+
+Mini cheatsheet
+```lldb
+p <my-var> # print out my-var
+
+br list # list all breakpoints
+b <location> # set a breakpoint, location could be e.g. main.zig:16, <some-func-name>
+
+# Print ints and unsigned chars in binary format
+type format add -f binary int
+type format add -f binary "unsigned char"
+```

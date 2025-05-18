@@ -1,5 +1,7 @@
 const std = @import("std");
+const testing = std.testing;
 const Connection = std.net.Server.Connection;
+const Map = std.static_string_map.StaticStringMap;
 
 pub fn read_request(conn: Connection, buffer: []u8) !void {
     const reader = conn.stream.reader();
@@ -10,8 +12,6 @@ pub fn write_response(conn: Connection) !void {
     const writer = conn.stream.writer();
     try writer.print("", .{});
 }
-
-const Map = std.static_string_map.StaticStringMap;
 
 const MethodMap = Map(Method).initComptime(.{
     .{ "GET", Method.GET },
@@ -37,7 +37,93 @@ pub const Method = enum {
     }
 };
 
-const testing = std.testing;
+const Request = struct {
+    method: Method,
+    uri: []const u8,
+    version: []const u8,
+
+    fn init(
+        method: Method,
+        uri: []const u8,
+        version: []const u8,
+    ) Request {
+        return Request{
+            .method = method,
+            .uri = uri,
+            .version = version,
+        };
+    }
+
+    fn parse_request(text: []const u8) !Request {
+        var method_text_end: u8 = 0;
+        while (method_text_end < text.len and text[method_text_end] != ' ') {
+            method_text_end += 1;
+        }
+        const method = try Method.init(text[0..method_text_end]);
+
+        const uri_text_start: u8 = method_text_end + 1;
+        var uri_text_end: u8 = uri_text_start;
+        while (uri_text_end < text.len and text[uri_text_end] != ' ') {
+            uri_text_end += 1;
+        }
+
+        const version_text_start: u8 = uri_text_end + 1;
+        var version_text_end: u8 = version_text_start;
+        while (version_text_end < text.len and text[version_text_end] != '\n') {
+            version_text_end += 1;
+        }
+
+        return Request.init(
+            method,
+            text[uri_text_start..uri_text_end],
+            text[version_text_start..version_text_end],
+        );
+    }
+};
+
+test "request parse" {
+    var method = Method.GET;
+    const uri: []const u8 = "/health";
+    const version: []const u8 = "HTTP/1.1";
+
+    var expected_request = Request{
+        .method = method,
+        .uri = uri,
+        .version = version,
+    };
+    const request_text = "GET /health HTTP/1.1\nOther irrelevant content...\n";
+
+    var actual_request = Request.parse_request(request_text);
+    try testing.expectEqualDeep(expected_request, actual_request);
+
+    method = Method.POST;
+
+    expected_request = Request{
+        .method = method,
+        .uri = uri,
+        .version = version,
+    };
+    const request_post_text = "POST /health HTTP/1.1";
+
+    actual_request = Request.parse_request(request_post_text);
+    try testing.expectEqualDeep(expected_request, actual_request);
+}
+
+test "request init" {
+    const method = Method.GET;
+    const uri: []const u8 = "/health";
+    const version: []const u8 = "HTTP/1.1";
+
+    const expected_request = Request{
+        .method = method,
+        .uri = uri,
+        .version = version,
+    };
+
+    const actual_request = Request.init(method, uri, version);
+
+    try testing.expectEqualDeep(expected_request, actual_request);
+}
 
 test "test enum" {
     var method: []const u8 = undefined;

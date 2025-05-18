@@ -55,28 +55,17 @@ const Request = struct {
     }
 
     fn parse_request(text: []const u8) !Request {
-        var method_text_end: u8 = 0;
-        while (method_text_end < text.len and text[method_text_end] != ' ') {
-            method_text_end += 1;
-        }
-        const method = try Method.init(text[0..method_text_end]);
+        const new_line_ix = std.mem.indexOfScalar(u8, text, '\n') orelse text.len;
+        var header_parts = std.mem.splitScalar(u8, text[0..new_line_ix], ' ');
 
-        const uri_text_start: u8 = method_text_end + 1;
-        var uri_text_end: u8 = uri_text_start;
-        while (uri_text_end < text.len and text[uri_text_end] != ' ') {
-            uri_text_end += 1;
-        }
-
-        const version_text_start: u8 = uri_text_end + 1;
-        var version_text_end: u8 = version_text_start;
-        while (version_text_end < text.len and text[version_text_end] != '\n') {
-            version_text_end += 1;
-        }
+        const method = try Method.init(header_parts.next().?);
+        const uri = header_parts.next().?;
+        const version = header_parts.next().?;
 
         return Request.init(
             method,
-            text[uri_text_start..uri_text_end],
-            text[version_text_start..version_text_end],
+            uri,
+            version,
         );
     }
 };
@@ -91,7 +80,7 @@ test "request parse" {
         .uri = uri,
         .version = version,
     };
-    const request_text = "GET /health HTTP/1.1\nOther irrelevant content...\n";
+    const request_text = "GET /health HTTP/1.1";
 
     var actual_request = Request.parse_request(request_text);
     try testing.expectEqualDeep(expected_request, actual_request);
@@ -103,7 +92,7 @@ test "request parse" {
         .uri = uri,
         .version = version,
     };
-    const request_post_text = "POST /health HTTP/1.1";
+    const request_post_text = "POST /health HTTP/1.1\nSome stuff";
 
     actual_request = Request.parse_request(request_post_text);
     try testing.expectEqualDeep(expected_request, actual_request);

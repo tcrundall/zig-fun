@@ -8,11 +8,6 @@ pub fn read_request(conn: Connection, buffer: []u8) !void {
     _ = try reader.read(buffer);
 }
 
-pub fn write_response(conn: Connection) !void {
-    const writer = conn.stream.writer();
-    try writer.print("", .{});
-}
-
 const MethodMap = Map(Method).initComptime(.{
     .{ "GET", Method.GET },
     .{ "POST", Method.POST },
@@ -37,12 +32,12 @@ pub const Method = enum {
     }
 };
 
-const Request = struct {
+pub const Request = struct {
     method: Method,
     uri: []const u8,
     version: []const u8,
 
-    fn init(
+    pub fn init(
         method: Method,
         uri: []const u8,
         version: []const u8,
@@ -54,7 +49,7 @@ const Request = struct {
         };
     }
 
-    fn parse_request(text: []const u8) !Request {
+    pub fn parse_request(text: []const u8) !Request {
         const new_line_ix = std.mem.indexOfScalar(u8, text, '\n') orelse text.len;
         var header_parts = std.mem.splitScalar(u8, text[0..new_line_ix], ' ');
 

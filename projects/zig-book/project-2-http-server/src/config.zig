@@ -6,7 +6,7 @@ pub const Socket = struct {
 
     pub fn init() !Socket {
         const host = [4]u8{ 127, 0, 0, 1 };
-        const port: u16 = 8006;
+        const port: u16 = 8000;
         const addr = net.Address.initIp4(host, port);
         const socket = try std.posix.socket(
             addr.any.family,

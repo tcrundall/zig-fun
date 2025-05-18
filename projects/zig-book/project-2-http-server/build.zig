@@ -70,8 +70,9 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_exe_unit_tests.step);
 
     const source_files: []const []const u8 = &[_][]const u8{
-        "src/request.zig",
         "src/config.zig",
+        "src/request.zig",
+        "src/response.zig",
     };
     for (source_files) |source_file| {
         const mod = b.createModule(.{

@@ -48,17 +48,14 @@ fn compileAndInstallLibrary(
     });
 
     // Handle conditional compilation
-    var flags = std.ArrayList([]const u8).init(b.allocator);
-    defer flags.deinit();
     if (use_my_math) {
-        try flags.append("-DUSE_MYMATH=1");
+        lib_mod.addCMacro("USE_MYMATH", "");
         lib.addCSourceFile(.{ .file = .{ .cwd_relative = "MathFunctions/mysqrt.cxx" } });
     }
 
     // Link soure files and dependencies
     lib.addCSourceFile(.{
         .file = .{ .cwd_relative = "MathFunctions/MathFunctions.cxx" },
-        .flags = flags.items,
     });
     lib.linkLibCpp();
 
@@ -92,7 +89,7 @@ fn compileAndInstallExecutable(
     exe.addConfigHeader(cmake_cfg_header_cmd);
 
     // Add source files, include headers and link dependencies
-    exe.addCSourceFile(.{ .file = .{ .cwd_relative = "tutorial.cxx" }, .flags = &.{} });
+    exe.addCSourceFile(.{ .file = .{ .cwd_relative = "tutorial.cxx" } });
     exe.addIncludePath(.{ .cwd_relative = "MathFunctions" });
     exe.linkLibCpp();
 
@@ -114,16 +111,13 @@ fn compileAndInstallTests(
     const tests = b.addExecutable(.{ .name = "tests", .root_module = test_mod });
 
     // Handle conditional compilation
-    var flags = std.ArrayList([]const u8).init(b.allocator);
-    defer flags.deinit();
     if (use_my_math) {
-        try flags.append("-DUSE_MYMATH=1");
+        test_mod.addCMacro("USE_MYMATH", "");
     }
 
     // Add source files, link dependencies
     tests.addCSourceFile(.{
         .file = b.path("tests/main.cpp"),
-        .flags = flags.items,
     });
     const googletest_dep = b.dependency("googletest", .{ // Does not accept nullable fields, so cannot directly pass standard_opts
         .target = standard_opts.target.?,

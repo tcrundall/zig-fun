@@ -26,8 +26,11 @@ A place for all of my zig experimentation and learning
 ## Learning
 
 - [ ] [zig-book](https://pedropark99.github.io/zig-book/)
-  - [ ] Ch. 5 - Debugging Zig
-  - [ ] Ch. 6 - Pointers and optionals
+  - [x] Ch. 5 - Debugging Zig
+  - [x] Ch. 6 - Pointers and optionals
+  - [x] Ch. 8 - Unit tests
+  - [ ] Ch. 9 - Build system
+- [ ] [zig build blog post](https://zig.news/xq/zig-build-explained-part-1-59lf)
 
 ## Notes
 

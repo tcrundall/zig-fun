@@ -12,9 +12,13 @@ pub fn main() !void {
     for (0..buffer.len) |i| {
         buffer[i] = 0;
     }
-    while (true) {
-        _ = try Request.read_request(connection, buffer[0..buffer.len]);
-        try stdout.print("{s}\n", .{buffer});
-        try Request.write_response(connection);
-    }
+
+    _ = try Request.read_request(connection, buffer[0..buffer.len]);
+    try stdout.print("{s}\n", .{buffer});
+    try Request.write_response(connection);
+}
+
+const testing = std.testing;
+test "dummy" {
+    try testing.expectEqual(true, true);
 }

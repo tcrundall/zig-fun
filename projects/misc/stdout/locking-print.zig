@@ -1,19 +1,18 @@
 const std = @import("std");
+const Thread = std.Thread;
 
 pub fn main() !void {
-    var lock = std.Thread.Mutex{};
+    var lock = Thread.Mutex{};
 
-    var t1 = try std.Thread.spawn(.{}, doHello, .{ &lock, 1 });
-    var t2 = try std.Thread.spawn(.{}, doHello, .{ &lock, 2 });
-
-    var threads: [2]*std.Thread = undefined;
-    threads[0] = &t1;
-    threads[1] = &t2;
+    var threads: [3]Thread = undefined;
+    for (0..threads.len) |i| {
+        threads[i] = try Thread.spawn(.{}, doHello, .{ &lock, i });
+    }
 
     for (threads) |t| t.join();
 }
 
-fn doHello(l: *std.Thread.Mutex, id: usize) !void {
+fn doHello(l: *Thread.Mutex, id: usize) !void {
     l.*.lock();
     defer l.*.unlock();
 

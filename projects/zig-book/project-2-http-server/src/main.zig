@@ -24,6 +24,7 @@ pub fn main() !void {
         buffer[i] = 0;
     }
     try Request.read_request(connection, buffer[0..buffer.len]);
+    try stdout.print("Raw request:\n---------\n{s}\n---------\n", .{buffer});
     const request = try Request.Request.parse_request(buffer[0..buffer.len]);
     try stdout.print(
         "{any}\n",

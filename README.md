@@ -19,7 +19,7 @@ A place for all of my zig experimentation and learning
 - [ ] [aoc](./projects/aoc/README.md)
 - [ ] [zig-book - projects](https://pedropark99.github.io/zig-book/)
   - [x] [project 1 - base64 de/encoder](./projects/zig-book/project-1/main.zig)
-  - [ ] project 2 - building HTTP server from scratch
+  - [x] project 2 - building HTTP server from scratch
   - [ ] project 3
 - [ ] [leetcode](./projects/leetcode/README.md)
 

@@ -30,6 +30,7 @@ A place for all of my zig experimentation and learning
   - [x] Ch. 6 - Pointers and optionals
   - [x] Ch. 8 - Unit tests
   - [ ] Ch. 9 - Build system
+  - [x] Ch. 10 - Error handling and unions
 - [ ] [zig build blog post](https://zig.news/xq/zig-build-explained-part-1-59lf)
 
 ## Notes

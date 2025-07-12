@@ -35,22 +35,18 @@ pub fn Stack(comptime T: type) type {
             return self.items[self.size];
         }
 
-        pub fn push(self: *Self, value: T) std.mem.Allocator.Error!T {
-            if (self.size == self.capacity) {
-                const new_stack = try self.allocator.alloc(T, 2 * self.capacity);
-                self.capacity *= 2;
-
-                for (self.items, 0..self.size) |old_elem, i| {
-                    new_stack[i] = old_elem;
-                }
+        pub fn push(self: *Self, value: T) Allocator.Error!void {
+            if (self.size + 1 > self.capacity) {
+                const new_buf = try self.allocator.alloc(T, 2 * self.capacity);
+                @memcpy(new_buf[0..self.capacity], self.items);
 
                 self.allocator.free(self.items);
-                self.items = new_stack;
+                self.items = new_buf;
+                self.capacity *= 2;
             }
 
             self.items[self.size] = value;
             self.size += 1;
-            return value;
         }
     };
 }
@@ -93,7 +89,7 @@ test "can pop" {
     var my_stack = try Stack(u32).init(testing.allocator, 2);
     defer my_stack.deinit();
 
-    _ = try my_stack.push(value);
+    try my_stack.push(value);
     const res = my_stack.pop();
     try testing.expectEqual(value, res);
     try testing.expectEqual(0, my_stack.size);
@@ -104,7 +100,7 @@ test "can push" {
     var my_stack = try Stack(u33).init(testing.allocator, 2);
     defer my_stack.deinit();
 
-    try testing.expectEqual(value, try my_stack.push(value));
+    try my_stack.push(value);
     try testing.expectEqual(1, my_stack.size);
     try testing.expectEqual(value, my_stack.items[0]);
 }
@@ -116,7 +112,7 @@ test "handles over capacity" {
     defer my_stack.deinit();
 
     for (0..push_count) |_| {
-        _ = try my_stack.push(value);
+        try my_stack.push(value);
     }
     try testing.expectEqual(push_count, my_stack.size);
 }
@@ -125,10 +121,10 @@ test "stack is indeed generic" {
     var my_stack_u8 = try Stack(u8).init(testing.allocator, 10);
     defer my_stack_u8.deinit();
     const value_u8: u8 = 10;
-    _ = try my_stack_u8.push(value_u8);
+    try my_stack_u8.push(value_u8);
 
     var my_stack_u16 = try Stack(u16).init(testing.allocator, 10);
     defer my_stack_u16.deinit();
     const value_u16: u16 = 10;
-    _ = try my_stack_u16.push(value_u16);
+    try my_stack_u16.push(value_u16);
 }

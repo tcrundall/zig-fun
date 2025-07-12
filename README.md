@@ -20,7 +20,8 @@ A place for all of my zig experimentation and learning
 - [ ] [zig-book - projects](https://pedropark99.github.io/zig-book/)
   - [x] [project 1 - base64 de/encoder](./projects/zig-book/project-1/main.zig)
   - [x] project 2 - building HTTP server from scratch
-  - [ ] project 3
+  - [x] project 3 - build a stack
+  - [ ] project 4 - image filter
 - [ ] [leetcode](./projects/leetcode/README.md)
 
 ## Learning
@@ -31,6 +32,11 @@ A place for all of my zig experimentation and learning
   - [x] Ch. 8 - Unit tests
   - [ ] Ch. 9 - Build system
   - [x] Ch. 10 - Error handling and unions
+  - [x] Ch. 11 - Data structures
+  - [ ] ch. 13 - Filesystem and IO
+  - [ ] ch. 14 - Zig interop with C
+  - [ ]  (ch. 16 - threads and parallelism)
+  - [ ]  (ch. 17 - vectors and SIMD)
 - [ ] [zig build blog post](https://zig.news/xq/zig-build-explained-part-1-59lf)
 
 ## Notes
@@ -38,7 +44,7 @@ A place for all of my zig experimentation and learning
 ### Debugging
 
 Links:
-- [zig book debug chatper](https://pedropark99.github.io/zig-book/Chapters/02-debugging.html#fn3)
+- [zig book debug chapter](https://pedropark99.github.io/zig-book/Chapters/02-debugging.html#fn3)
 - [lldb docs](https://lldb.llvm.org/)
 - [lldb cheatsheet](https://gist.github.com/ryanchang/a2f738f0c3cc6fbd71fa)
 

@@ -9,30 +9,30 @@ pub fn Stack(comptime T: type) type {
         const Self = @This();
 
         allocator: Allocator,
-        capacity: u8,
-        stack: []T,
-        size: u8,
+        capacity: usize,
+        items: []T,
+        size: usize,
 
-        pub fn init(alloc: Allocator, init_capacity: u8) !Self {
+        pub fn init(alloc: Allocator, init_capacity: usize) !Self {
             const stack = try alloc.alloc(T, init_capacity);
-            return Self{ .allocator = alloc, .capacity = init_capacity, .stack = stack, .size = 0 };
+            return Self{ .allocator = alloc, .capacity = init_capacity, .items = stack, .size = 0 };
         }
 
         pub fn deinit(self: *Self) void {
-            self.allocator.free(self.stack);
+            self.allocator.free(self.items);
         }
 
         pub fn peek(self: *Self) StackError!T {
             if (self.size == 0) return error.EmptyStack;
 
-            return self.stack[self.size - 1];
+            return self.items[self.size - 1];
         }
 
         pub fn pop(self: *Self) StackError!T {
             if (self.size == 0) return error.EmptyStack;
 
             self.size -= 1;
-            return self.stack[self.size];
+            return self.items[self.size];
         }
 
         pub fn push(self: *Self, value: T) std.mem.Allocator.Error!T {
@@ -40,15 +40,15 @@ pub fn Stack(comptime T: type) type {
                 const new_stack = try self.allocator.alloc(T, 2 * self.capacity);
                 self.capacity *= 2;
 
-                for (self.stack, 0..self.size) |old_elem, i| {
+                for (self.items, 0..self.size) |old_elem, i| {
                     new_stack[i] = old_elem;
                 }
 
-                self.allocator.free(self.stack);
-                self.stack = new_stack;
+                self.allocator.free(self.items);
+                self.items = new_stack;
             }
 
-            self.stack[self.size] = value;
+            self.items[self.size] = value;
             self.size += 1;
             return value;
         }
@@ -106,7 +106,7 @@ test "can push" {
 
     try testing.expectEqual(value, try my_stack.push(value));
     try testing.expectEqual(1, my_stack.size);
-    try testing.expectEqual(value, my_stack.stack[0]);
+    try testing.expectEqual(value, my_stack.items[0]);
 }
 
 test "handles over capacity" {

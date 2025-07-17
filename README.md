@@ -23,6 +23,7 @@ A place for all of my zig experimentation and learning
   - [x] project 3 - build a stack
   - [ ] project 4 - image filter
 - [ ] [leetcode](./projects/leetcode/README.md)
+- [ ] simple ssh server and client
 
 ## Learning
 
